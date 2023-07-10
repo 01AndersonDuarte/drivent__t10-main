@@ -8,20 +8,16 @@ export async function getPayment(ticketId: number) {
 }
 
 export async function getUserIdPayment(ticketId: number) {
-    const ticket = await prisma.payment.findFirst({
+    const ticket = await prisma.ticket.findFirst({
         select: {
-            Ticket: {
-                select: {
-                    TicketType: {
-                        select: { price: true, id: true }
-                    },
-                    Enrollment: {
-                        select: { userId: true }
-                    }
-                }
+            TicketType: {
+                select: { price: true, id: true }
+            },
+            Enrollment: {
+                select: { userId: true }
             }
         },
-        where: { ticketId }
+        where: { id: ticketId }
     });
 
     return ticket;
