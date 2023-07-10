@@ -1,5 +1,6 @@
 import * as ticketsRepository from "@/repositories/tickets-repository";
 import { notFoundError } from "../../errors";
+import { TicketStatus } from "@prisma/client";
 
 export async function getAllTickets() {
     const result = await ticketsRepository.getAllTickets();
@@ -26,7 +27,14 @@ async function checkEnrollment(userId: number) {
 
 export async function postTicket(userId: number, ticketTypeId: number) {
     const enrollment = await checkEnrollment(userId);
+    const findTicket = await ticketsRepository.checkTicket(enrollment.id);
+    const status: TicketStatus = 'RESERVED';
 
-    await ticketsRepository.postTicket(enrollment.id, ticketTypeId);
+    if (!findTicket) {
+        await ticketsRepository.postTicket(enrollment.id, ticketTypeId);
+    }else{
+        await ticketsRepository.upTicket(findTicket.id, ticketTypeId, status);
+    }
+
     return await getTicket(userId);
 }
