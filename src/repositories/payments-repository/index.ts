@@ -1,29 +1,21 @@
-import { prisma } from "@/config";
-import { BodyPayment, DataPayment } from "@/protocols";
+import { prisma } from '@/config';
+import { PaymentParams } from '@/protocols';
 
-export async function getPayment(ticketId: number) {
-    return await prisma.payment.findFirst({
-        where: { ticketId }
-    });
+async function findPaymentByTicketId(ticketId: number) {
+  return prisma.payment.findFirst({
+    where: {
+      ticketId,
+    },
+  });
 }
 
-export async function getUserIdPayment(ticketId: number) {
-    const ticket = await prisma.ticket.findFirst({
-        select: {
-            TicketType: {
-                select: { price: true, id: true }
-            },
-            Enrollment: {
-                select: { userId: true }
-            }
-        },
-        where: { id: ticketId }
-    });
+async function createPayment(ticketId: number, params: PaymentParams) {
+  return prisma.payment.create({
+    data: {
+      ticketId,
+      ...params,
+    },
+  });
+}
 
-    return ticket;
-}
-export async function postPayment(payment: DataPayment) {
-    const result = await prisma.payment.create({
-        data: payment
-    });
-}
+export default { findPaymentByTicketId, createPayment };

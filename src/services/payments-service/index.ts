@@ -1,47 +1,45 @@
-import * as paymentsRepository from "@/repositories/payments-repository";
-import * as ticketsRepository from "@/repositories/tickets-repository";
-import { cannotEnrollBeforeStartDateError, notFoundError, unauthorizedError } from "@/errors";
-import { BodyPayment, DataPayment } from "@/protocols";
-import { upTicket } from "../../repositories/tickets-repository";
-import { TicketStatus } from "@prisma/client";
-import { prisma } from "@/config";
+import { notFoundError, unauthorizedError } from '@/errors';
+import { CardPaymentParams, PaymentParams } from '@/protocols';
+import enrollmentRepository from '@/repositories/enrollment-repository';
+import paymentsRepository from '@/repositories/payments-repository';
+import ticketsRepository from '@/repositories/tickets-repository';
 
-export async function getPayment(ticketId: number, userId: number) {
-    if (isNaN(ticketId)) throw cannotEnrollBeforeStartDateError();
-    const result = await paymentsRepository.getPayment(ticketId);
-    const userIdPayment = await getUserIdPayment(ticketId);
+async function verifyTicketAndEnrollment(ticketId: number, userId: number) {
+  const ticket = await ticketsRepository.findTickeyById(ticketId);
+  if (!ticket) throw notFoundError();
 
-    if (!result) throw notFoundError();
+  const enrollment = await enrollmentRepository.findById(ticket.enrollmentId);
+  if (!enrollment) throw notFoundError();
 
-    if (userId !== userIdPayment.Enrollment.userId) throw unauthorizedError();
-
-    return result;
+  if (enrollment.userId !== userId) throw unauthorizedError();
 }
 
-export async function getUserIdPayment(ticketId: number) {
-    return await paymentsRepository.getUserIdPayment(ticketId);
+async function getPaymentByTicketId(userId: number, ticketId: number) {
+  await verifyTicketAndEnrollment(ticketId, userId);
+
+  const payment = await paymentsRepository.findPaymentByTicketId(ticketId);
+  if (!payment) throw notFoundError();
+
+  return payment;
 }
-export async function postPayment(payment: BodyPayment, userId: number) {
-    if(isNaN(payment.ticketId)) throw cannotEnrollBeforeStartDateError();
-    if(!payment.cardData) throw cannotEnrollBeforeStartDateError();
 
-    const userIdPayment = await getUserIdPayment(payment.ticketId);
-    const status: TicketStatus = "PAID";
+async function paymentProcess(ticketId: number, userId: number, cardData: CardPaymentParams) {
+  await verifyTicketAndEnrollment(ticketId, userId);
 
-    const ticket = await prisma.ticket.findFirst({where: {id: payment.ticketId}});
-    if (!ticket) throw notFoundError();
+  const ticket = await ticketsRepository.findTickeWithTypeById(ticketId);
 
-    if (userId !== userIdPayment.Enrollment.userId) throw unauthorizedError();
+  const paymentData: PaymentParams = {
+    ticketId,
+    value: ticket.TicketType.price,
+    cardIssuer: cardData.issuer,
+    cardLastDigits: cardData.number.toString().slice(-4),
+  };
 
-    const dataPayment: DataPayment =
-    {
-        ticketId: payment.ticketId,
-        value: userIdPayment.TicketType.price,
-        cardIssuer: payment.cardData.issuer,
-        cardLastDigits: `${payment.cardData.number}`.slice(-4),
-    };
+  const payment = await paymentsRepository.createPayment(ticketId, paymentData);
 
-    await paymentsRepository.postPayment(dataPayment);
-    await upTicket(payment.ticketId, userIdPayment.TicketType.id, status);
-    return await getPayment(payment.ticketId, userId);
+  await ticketsRepository.ticketProcessPayment(ticketId);
+
+  return payment;
 }
+
+export default { getPaymentByTicketId, paymentProcess };
