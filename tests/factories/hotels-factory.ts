@@ -1,5 +1,5 @@
 import faker from '@faker-js/faker';
-import { Hotel } from '@prisma/client';
+import { Hotel, Room } from '@prisma/client';
 import { prisma } from '@/config';
 
 export function createHotel(): Promise<Hotel> {
@@ -9,4 +9,14 @@ export function createHotel(): Promise<Hotel> {
       image: faker.image.imageUrl()
     },
   });
+}
+
+export function createRoom(hotelId: number): Promise<Room>{
+    return prisma.room.create({
+        data: {
+            name: faker.company.catchPhrase(),
+            capacity: faker.datatype.number({min: 1, max: 100}),
+            hotelId: hotelId,
+        }
+    });
 }
