@@ -8,7 +8,7 @@ export async function getHotels(req: AuthenticatedRequest, res: Response) {
 
     try {
         const hotels = await hotelService.getHotels(userId);
-        if (hotels.length===0) return res.sendStatus(httpStatus.NOT_FOUND);
+        if (hotels.length === 0) return res.sendStatus(httpStatus.NOT_FOUND);
 
         res.send(hotels);
     } catch (err) {
@@ -28,5 +28,10 @@ export async function getHotels(req: AuthenticatedRequest, res: Response) {
 }
 
 export async function getHotelRooms(req: AuthenticatedRequest, res: Response) {
+    const hotelId = Number(req.params.hotelId);
+    const { userId } = req;
 
+    const hotelRooms = await hotelService.getHotelRooms(hotelId, userId);
+
+    res.send(hotelRooms);
 }
