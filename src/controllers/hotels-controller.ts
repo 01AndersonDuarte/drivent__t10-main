@@ -6,14 +6,25 @@ import httpStatus from 'http-status';
 export async function getHotels(req: AuthenticatedRequest, res: Response) {
     const { userId } = req;
 
-    const hotels = await hotelService.getHotels(userId);
-    try{
-        await hotelService.validate(userId);
-    }catch(error){
-        res.status(httpStatus.PAYMENT_REQUIRED).send(error.message);
+    try {
+        const hotels = await hotelService.getHotels(userId);
+        if (hotels.length===0) return res.sendStatus(httpStatus.NOT_FOUND);
+
+        res.send(hotels);
+    } catch (err) {
+        if (err.name === 'NotFoundError') {
+            return res.status(httpStatus.NOT_FOUND).send({
+                message: err.message,
+            });
+        }
+
+        if (err.name === 'PaymentRequired') {
+            return res.status(httpStatus.PAYMENT_REQUIRED).send({
+                message: err.message,
+            });
+        }
+        return res.sendStatus(httpStatus.BAD_REQUEST);
     }
-    
-    res.send(hotels);
 }
 
 export async function getHotelRooms(req: AuthenticatedRequest, res: Response) {

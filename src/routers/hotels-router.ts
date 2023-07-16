@@ -1,7 +1,7 @@
 import { Router } from "express";
 
-import { getHotels, getHotelRooms } from "../controllers/hotels-controller";
-import { authenticateToken } from "../middlewares";
+import { getHotels, getHotelRooms } from "@/controllers/hotels-controller";
+import { authenticateToken } from "@/middlewares";
 
 const hotelsRouter = Router();
 
